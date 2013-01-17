@@ -1,0 +1,18 @@
+[
+    "111",
+    {"object1":["array1-1",true,"array1-3",false,"array1-5",null,123,4.5,678,12e3],"object2":"obj2"},
+	[{["ob":{},"ar":[]]}],
+    {},\
+    [],\
+    -42,
+    true,
+    null,
+    {
+        "integer": 1234567890,
+        "real": -9876.543210
+    },
+    0.5,"stringend"
+]
+[
+    "array2"
+]
