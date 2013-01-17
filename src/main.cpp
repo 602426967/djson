@@ -38,28 +38,30 @@ void test_read()
 void test_write(djson &dj)
 {
 	string s;
-	djitem *it,*sub,*sub2;
-	it = dj.newitem(&dj.root,JARRAY,"","");
-	dj.root.child = it;
-	it->append(dj.newitem(it,JSTRING,"key1","111"));
-	it->append(dj.newitem(it,JNUMBER,"key2","222"));
-	it->append(dj.newitem(it,JFALSE,"key3","false"));
-	it->append(dj.newitem(it,JNULL,"key4","null"));
+	djitem *sub1,*sub2,*sub3;
+
+	dj.root.append(sub1=dj.newitem(&dj.root,JOBJECT,"",""));
+	sub1->append(dj.newitem(sub1,JSTRING,"key1","111"));
+	sub1->append(dj.newitem(sub1,JNUMBER,"key2","222"));
 
 	//if you insert a sub item
 	//the sub must be JOBJECT or JARRAY
-	sub = dj.newitem(it,JOBJECT,"","");
-	it->append(sub);
-	sub->append(dj.newitem(sub,JTRUE,"sub1","true"));
-	sub->append(dj.newitem(sub,JFALSE,"sub2","false"));
-	  sub2 = dj.newitem(sub,JARRAY,"","");
-	  sub->append(sub2);
-	  sub2->append(dj.newitem(sub2,JNULL,"subsub1","null"));
-	  sub2->append(dj.newitem(sub2,JNULL,"subsub2","null"));
-	  sub2->append(dj.newitem(sub2,JNULL,"subsub3","null"));
-	sub->append(dj.newitem(sub,JNULL,"sub3","null"));
-	sub->append(dj.newitem(sub,JNUMBER,"sub4","0.1234"));
+	sub1->append(sub2=dj.newitem(sub1,JOBJECT,"",""));
+		sub2->append(dj.newitem(sub2,JTRUE,"sub1","true"));
+		sub2->append(dj.newitem(sub2,JFALSE,"sub2","false"));
+		sub2->append(sub3=dj.newitem(sub2,JARRAY,"",""));
+			sub3->append(dj.newitem(sub3,JNUMBER,"subsub1","1.234"));
+			sub3->append(dj.newitem(sub3,JTRUE,"subsub2","true"));
+			sub3->append(dj.newitem(sub3,JSTRING,"subsub3","abcdefg"));
+		sub2->append(dj.newitem(sub2,JNULL,"sub3","null"));
+		sub2->append(dj.newitem(sub2,JNUMBER,"sub4","0.1234"));
+
+	sub1->append(dj.newitem(sub1,JFALSE,"key3","false"));
+	sub1->append(dj.newitem(sub1,JNULL,"key4","null"));
+
+	cout << "---------- show the tree -------" << endl;
 	dj.show();
+	cout << "------- out to string -----------" << endl;
 	dj.out(s);
 	cout << s << endl;
 }
