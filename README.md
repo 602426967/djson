@@ -6,3 +6,6 @@ the simple, easy, simple-file, json parser, writed by c++, can run at windows/li
 v1.0.1		2013-01-17
 	+ commit the source files
 	+ ms vc6 project files
+
+v1.0.2		2013-01-18
+	+ json item access
