@@ -16,8 +16,8 @@
 
 ///
 /// \file       djson.h
-/// \date       2012/12/30
-/// \version    1.0.1
+/// \date       2013/01/18
+/// \version    1.0.2
 /// \author     dege
 /// \mail       602426967@qq.com
 /// \copyright  Apache License, Version 2.0
@@ -41,9 +41,6 @@
 #include <map>
 #include <stack>
 
-#define UPPERCASE(s) std::transform(s.begin(),s.end(),s.begin(),::toupper)
-#define LOWERCASE(s) std::transform(s.begin(),s.end(),s.begin(),::tolower)
-
 class djitem;
 class djson;
 
@@ -57,13 +54,13 @@ enum djson_type
 {
 	JUNKNOW,
 	JROOT,	
-    JSTRING,
-    JNUMBER,
-    JOBJECT,
-    JARRAY,
-    JTRUE,
-    JFALSE,
-    JNULL
+	JSTRING,
+	JNUMBER,
+	JOBJECT,
+	JARRAY,
+	JTRUE,
+	JFALSE,
+	JNULL
 };
 
 ///
@@ -73,13 +70,13 @@ enum djson_type
 enum djson_error
 {
 	JE_SUCCESS,			//this means json decode success, others are failure.
-    JE_PREFIXSYMBOL,	//first symbol is not {[
+	JE_PREFIXSYMBOL,	//first symbol is not {[
 	JE_PAIR,            // {} or [] is not pairs
 
-    JE_INVALIDCHARACTER, //invalid char when parse
+	JE_INVALIDCHARACTER, //invalid char when parse
 
 	JE_STRING,           //parse string fail
-    JE_NUMBER,           //parse number fail
+	JE_NUMBER,           //parse number fail
 	JE_BOOLEAN,          //
 	JE_NULL,
 
@@ -93,234 +90,33 @@ enum djson_error
 class djitem
 {
 public:
-	djitem(string key,int v)
-	{
-		char buf[16];
-		djitem();
-		sprintf(buf,"%d",v);
-		type = JNUMBER;
-		svalue = buf;
-		skey = key;
-	}
-	djitem(string key,double v)
-	{
-		char buf[16];
-		djitem();
-		sprintf(buf,"%lf",v);
-		type = JNUMBER;
-		svalue = buf;
-		skey = key;
-	}
-	djitem(string key,float v)
-	{
-		char buf[16];
-		djitem();
-		sprintf(buf,"%f",v);
-		type = JNUMBER;
-		svalue = buf;
-		skey = key;
-	}
-	djitem(string key,char* s)
-	{
-		djitem();
-		type = JSTRING;
-		svalue = s;
-		skey = key;
-	}
-	djitem(string key,string s)
-	{
-		djitem();
-		type = JSTRING;
-		svalue = s;
-		skey = key;
-	}
-	djitem(string key,bool v)
-	{
-		djitem();
-		if (v)
-		{
-			type = JTRUE;
-			svalue = "true";
-		}
-		else
-		{
-			type = JFALSE;
-			svalue = "false";
-		}
-		skey = key;
-	}
-	djitem()
-	{
-		type = JUNKNOW;
-		parent = NULL;
-		sibling = NULL;
-		child = NULL;
-		level = 0;
-	}
-	virtual ~djitem(void) 
-	{
 
-	}
-	virtual void show()
-	{
- 		int i;
-  		for (i=0;i<level;i++)
-  			printf("\t");
-  		printf("[%d - %s] %s:%s\n",
- 			level,gettypename().c_str(),skey.c_str(),svalue.c_str());
- 		//this,parent,sibling,child,level);
-		if (child!=NULL)
-			child->show();
- 		if ( (type==JARRAY) || (type==JOBJECT) )
- 		{
- 			for (i=0;i<level;i++)
- 				printf("\t");
- 			printf("[/%s]\n",gettypename().c_str());
- 		}
+	djitem();
+	virtual ~djitem(void);
 
-		if (sibling)
-			sibling->show();
-	}
+	virtual void show();
+	virtual void out(string &str);
 
-	virtual void out(string &str)
-	{
-		if ( (type==JOBJECT) || (type==JARRAY) )
-		{
-			if (skey.length())
-			{
-				str += "\"" + skey + "\":";
-			}
-		}
+	int              as_int();
+	unsigned int     as_uint();
+	double           as_double();
+	float            as_float();
+	string           as_string();
+	bool             as_bool();
 
-		switch (type)
-		{
-		case JOBJECT:
-			str += "{";
-			break;
-		case JARRAY:
-			str += "[";
-			break;
-		case JNUMBER:
-		case JTRUE:
-		case JFALSE:
-		case JNULL:
-			if (skey.length()==0)
-				str += svalue.c_str();
-			else
-				str += ("\"" + skey + "\":" + svalue);
-			break;
-		case JSTRING:
-			if (skey.length()==0)
-				str += ("\"" + svalue + "\"");
-			else
-				str += ("\"" + skey + "\":\"" + svalue + "\"");
-			break;
-		}
+	string gettypename();
+	djitem* getlast();
+	void append(djitem* sub);
 
-		if (child)
-		{
-			//recursive call for child
-			child->out(str);
-		}
-
-		if (type==JOBJECT)
-			str += "}";
-		if (type==JARRAY)
-			str += "]";
-
-		if (sibling)
-		{
-			str += ",";
-			//recursive call for sibling
-			sibling->out(str);
-		}
-	}
-	
-	int as_int()
-	{
-		return atoi(svalue.c_str());
-	}
-	unsigned int as_uint()
-	{
-		return (unsigned int)as_int();
-	}
-	double as_double()
-	{
-		double f;
-		if (1==sscanf(svalue.c_str(),"%lf",&f))
-			return f;
-		return 0.0;
-	}
-	float as_float()
-	{
-		float f;
-		if (1==sscanf(svalue.c_str(),"%f",&f))
-			return f;
-		return 0.0f;
-	}
-	std::string as_string()
-	{
-		return svalue;
-	}
-	bool as_bool()
-	{
-		if (svalue=="true")
-			return true;
-		else
-			return false;
-	}
-	std::string gettypename()
-	{
-		char *s=NULL;
-		char buf[32];
-		switch (type)
-		{
-		case JROOT:   s="Root";   break;
-		case JUNKNOW: s="Unknow"; break;
-		case JSTRING: s="String"; break;
-		case JNUMBER: s="Number"; break;
-		case JOBJECT: s="Object"; break;
-		case JARRAY:  s="Array";  break;
-		case JTRUE:   s="True";   break;
-		case JFALSE:  s="False";  break;
-		case JNULL:   s="Null";   break;
-		}
-		if (!s)
-			sprintf(buf,"Name:%d",(int)type);
-		else
-			sprintf(buf,"%s",s);
-		return std::string(buf);
-	}
-	djitem* getlast()
-	{
-		djitem* temp=this;
-		while (temp->sibling!=NULL)
-		{
-			temp = temp->sibling;
-		}
-		return temp;
-	}
-	void append(djitem* sub)
-	{
-		if (child)
-			child->getlast()->sibling = sub;
-		else
-		{
-			if (getlast()==this) //is first
-				child = sub;
-			else
-				getlast()->sibling = sub;
-		}
-	}
-	
 	int level;
 	djson_type type;
 	string svalue;
 	string skey;
 
+	djitem* parent;
 	djitem* sibling;
 	djitem* child;
-	djitem* parent;
+
 };
 
 
@@ -337,60 +133,25 @@ class djson
 /// public functions
 public:
 
-	djson();
-	
-    ~djson() 
-	{
-		freeitems();
-	}
+	djson();	
+    ~djson();
 
-	std::string geterrorstring()
-	{
-		switch (error)
-		{
-		case JE_SUCCESS:
-			return "sucess";
-		case JE_PREFIXSYMBOL:
-			return "bad prefix symbol";
-		case JE_PAIR:
-			return "{} or [] pair error";
-		case JE_INVALIDCHARACTER:
-			return "invalid character";
-		case JE_STRING:
-			return "bad string";
-		case JE_NUMBER:
-			return "bad number character";
-		case JE_BOOLEAN:
-			return "bad boolean character";
-		case JE_NULL:
-			return "bad null";
-		case JE_UNFINISH:
-			return "json unfinished";
-		default:
-			break;
-		}
-		return "unknow error";
-	}
+	std::string geterrorstring();
 
 /// public data
 public:
 	djson_error    error;
-	djitem       root;			//the decode or encode result here
+	djitem         root;			//the root of all items
 
 	void settext(const char* str,int len);
+	void show();
+	void out(string &str);
 
-	void show()
-	{
-		root.show();
-	}
-
-	void out(string &str)
-	{
-		root.out(str);
-	}
-
-	djitem* newitem(djitem* parent,djson_type type,string key,string value);
+	djitem* trueitem(djitem* parent);
+	djitem* newitem(djitem* parent,djson_type type,string key="",string value="");
 	djitem* finditem(djitem* parent,string keyname);
+	djitem* finditembyindex(djitem* parent,int index); //start at 0
+	djitem* finditembytype(djitem* parent,int index,djson_type type);
 	djitem* insertitem(djitem* psrc,djitem* pdst);  //insert after dst
 
 	//TODO: delete
@@ -402,14 +163,14 @@ private:
 	void parse();
 	void freeitems();
 	
-    int skip(int startpos);
+	int skip(int startpos);
 	int parse_string(int startpos,string &str);
 	int parse_number(int startpos,string &str);
-    int parse_string_want(int startpos,std::string swant, string &str);
+	int parse_string_want(int startpos,std::string swant, string &str);
 
 /// private data
 private:
-	vector<djitem*> itempool;
+	vector<djitem*> itempool;    /// memory poll of all items allocated
 	const char* jsontext;        ///< store the json text pointer here
 	int         jsontextlen;     ///< store the json text length
 

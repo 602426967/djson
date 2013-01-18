@@ -1,3 +1,36 @@
+{{{[[{},[],{}]],{},[]},[]},{[[[{}]]]}}
+
+{
+"card":"2",
+"numbers":{
+	"Conway":[1,11,21,1211,111221,312211],
+	"Fibonacci":[0,1,1,2,3,5,8,13,21,34]}
+}
+
+{
+"ID":null,
+"name":"Doe",
+"first-name":"John",
+"age":25,
+"hobbies":["reading","cinema",{"sports":["volley-ball","snowboard"]}],
+"address":{}
+}
+
+{
+"null":null,"boolean":[true,false],
+"number":[0,2.1,2e8,-123456780],
+"string":{"any characters":"abc def",
+          "quotation \"":"\\",
+		  "backslash \\\\":"\\\\",
+		  "slash \\/":"\\/",
+		  "backspace \\b":"\\b",
+		  "form feed \\f":"\\f",
+		  "new line \\n":"\\n",
+		  "carriage return \\r":"\\r",
+		  "tab \\t":"\\t",
+		  "hexadeci\\u006Dal":"\\u004A-\\u005A"}
+}
+
 [
     "111",
     {"object1":["array1-1",true,"array1-3",false,"array1-5",null,123,4.5,678,12e3],"object2":"obj2"},
@@ -7,12 +40,11 @@
     -42,
     true,
     null,
-    {
-        "integer": 1234567890,
-        "real": -9876.543210
-    },
-    0.5,"stringend"
+    {"integer": 1234567890,"real": -9876.543210},
+    0.5,
+	"stringend"
 ]
+
 [
     "array2"
 ]

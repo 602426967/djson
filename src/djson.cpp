@@ -16,14 +16,34 @@
 
 ///
 /// \file       djson.h
-/// \date       2012/12/30
-/// \version    1.0.1
+/// \date       2013/01/18
+/// \version    1.0.2
 /// \author     dege
 /// \mail       602426967@qq.com
 /// \copyright  Apache License, Version 2.0
 ///
 
 #include "djson.h"
+
+//------------------------- static functions -------------------------------------
+
+// replace a sub string in a string
+static string& replace_all(string& str,const string&old_value,const string& new_value)    
+{    
+	string::size_type pos;
+	if (str.length()<1)
+		return str;
+    for(pos=0; pos!=string::npos; pos+=new_value.length()) 
+	{    
+        if(   (pos=str.find(old_value,pos))!=string::npos   )   
+		{
+            str.replace(pos,old_value.length(),new_value);    
+		}
+        else   
+			break;    
+    }    
+    return str;    
+} 
 
 static bool is_number(char c)
 {
@@ -36,6 +56,198 @@ static bool is_number(char c)
 	}
 	return false;
 }
+
+//--------------------------- djitem member functions -----------------------------
+djitem::djitem()
+{
+	type = JUNKNOW;
+	parent = NULL;
+	sibling = NULL;
+	child = NULL;
+	level = 0;
+}
+
+djitem::~djitem(void) 
+{
+
+}
+
+void djitem::show()
+{
+ 	int i;
+  	for (i=0;i<level;i++)
+  		printf("\t");
+  	printf("[%d - %s] %s:%s\n",
+ 		level,gettypename().c_str(),skey.c_str(),svalue.c_str());
+ 	//this,parent,sibling,child,level);
+	if (child!=NULL)
+		child->show();
+ 	if ( (type==JARRAY) || (type==JOBJECT) )
+ 	{
+ 		for (i=0;i<level;i++)
+ 			printf("\t");
+ 		printf("[/%s]\n",gettypename().c_str());
+ 	}
+
+	if (sibling)
+		sibling->show();
+}
+
+void djitem::out(string &str)
+{
+	string k,v;
+	k = skey;
+	v = svalue;
+
+	//replace the escape char
+	replace_all(k,"\\","\\\\");
+	replace_all(k,"\"","\\\"");
+	if (type==JSTRING)
+	{
+		replace_all(v,"\\","\\\\");
+		replace_all(v,"\"","\\\"");
+	}
+
+	if ( (type==JOBJECT) || (type==JARRAY) )
+	{
+		if (k.length())
+		{
+			str += "\"" + k + "\":";
+		}
+	}
+
+	switch (type)
+	{
+	case JOBJECT:
+		str += "{";
+		break;
+	case JARRAY:
+		str += "[";
+		break;
+	case JNUMBER:
+	case JTRUE:
+	case JFALSE:
+	case JNULL:
+		if (k.length()==0)
+			str += v;
+		else
+			str += ("\"" + k + "\":" + v);
+		break;
+	case JSTRING:
+		if (skey.length()==0)
+			str += ("\"" + v + "\"");
+		else
+			str += ("\"" + k + "\":\"" + v + "\"");
+		break;
+	}
+
+	if (child)
+	{
+		//recursive call for child
+		child->out(str);
+	}
+
+	if (type==JOBJECT)
+		str += "}";
+	if (type==JARRAY)
+		str += "]";
+
+	if (sibling)
+	{
+		str += ",";
+		//recursive call for sibling
+		sibling->out(str);
+	}
+}
+
+int djitem::as_int()
+{
+	return atoi(svalue.c_str());
+}
+
+unsigned int djitem::as_uint()
+{
+	return (unsigned int)as_int();
+}
+
+double djitem::as_double()
+{
+	double f;
+	if (1==sscanf(svalue.c_str(),"%lf",&f))
+		return f;
+	return 0.0;
+}
+
+float djitem::as_float()
+{
+	float f;
+	if (1==sscanf(svalue.c_str(),"%f",&f))
+		return f;
+	return 0.0f;
+}
+
+std::string djitem::as_string()
+{
+	return svalue;
+}
+
+bool djitem::as_bool()
+{
+	if (svalue=="true")
+		return true;
+	else
+		return false;
+}
+
+std::string djitem::gettypename()
+{
+	char *s=NULL;
+	char buf[32];
+	switch (type)
+	{
+	case JROOT:   s="Root";   break;
+	case JUNKNOW: s="Unknow"; break;
+	case JSTRING: s="String"; break;
+	case JNUMBER: s="Number"; break;
+	case JOBJECT: s="Object"; break;
+	case JARRAY:  s="Array";  break;
+	case JTRUE:   s="True";   break;
+	case JFALSE:  s="False";  break;
+	case JNULL:   s="Null";   break;
+	}
+	if (!s)
+		sprintf(buf,"Name:%d",(int)type);
+	else
+		sprintf(buf,"%s",s);
+	return std::string(buf);
+}
+
+djitem* djitem::getlast()
+{
+	djitem* temp=this;
+	while (temp->sibling!=NULL)
+	{
+		temp = temp->sibling;
+	}
+	return temp;
+}
+
+void djitem::append(djitem* sub)
+{
+	if (child)
+		child->getlast()->sibling = sub;
+	else
+	{
+		if (getlast()==this) //is first
+			child = sub;
+		else
+			getlast()->sibling = sub;
+	}
+}
+
+
+
+//------------------------------- djson member functions ---------------------------
 
 void djson::freeitems()
 {
@@ -64,6 +276,49 @@ void djson::init()
 djson::djson()
 {
 	init();
+}
+
+djson::~djson()
+{
+	init();
+}
+
+void djson::show()
+{
+	root.show();
+}
+
+void djson::out(string &str)
+{
+	root.out(str);
+}
+
+string djson::geterrorstring()
+{
+	switch (error)
+	{
+	case JE_SUCCESS:
+		return "sucess";
+	case JE_PREFIXSYMBOL:
+		return "bad prefix symbol";
+	case JE_PAIR:
+		return "{} or [] pair error";
+	case JE_INVALIDCHARACTER:
+		return "invalid character";
+	case JE_STRING:
+		return "bad string";
+	case JE_NUMBER:
+		return "bad number character";
+	case JE_BOOLEAN:
+		return "bad boolean character";
+	case JE_NULL:
+		return "bad null";
+	case JE_UNFINISH:
+		return "json unfinished";
+	default:
+		break;
+	}
+	return "unknow error";
 }
 
 void djson::settext(const char* str,int len)
@@ -97,8 +352,22 @@ djitem* djson::newitem(djitem* parent,djson_type type,string key,string value)
 		return NULL;
 	pnew->type = type;
 	pnew->parent = parent;
+	switch (type)
+	{
+	case JTRUE:
+		pnew->svalue = "true"; 
+		break;
+	case JFALSE:
+		pnew->svalue = "false"; 
+		break;
+	case JNULL:
+		pnew->svalue = "null"; 
+		break;
+	default:
+		pnew->svalue = value;
+		break;
+	}
 	pnew->skey = key;
-	pnew->svalue = value;
 	itempool.push_back(pnew);
 	while (parent)
 	{
@@ -147,8 +416,7 @@ void djson::parse()
 			break;
 		case '[':
 		case '{':
-			sub = newitem(jo,(c=='[')?JARRAY:JOBJECT,key,"");
-			//sub->level = stk.size()-1;			
+			sub = newitem(jo,(c=='[')?JARRAY:JOBJECT,key,"");			
 			key="";
 			jo->append(sub);
 			stk.push(sub);
@@ -179,7 +447,6 @@ void djson::parse()
 				break;
 			}
 			sub = newitem(jo,JSTRING,key,s);
-			//sub->level = stk.size()-1;
 			key = "";
 			jo->append(sub);
 			break;
@@ -197,7 +464,6 @@ void djson::parse()
 			}
 			pos += ret;
 			sub = newitem(jo,JNUMBER,key,s);
-			//sub->level = stk.size()-1;
 			key = "";
 			jo->append(sub);
 			pos--;
@@ -211,7 +477,6 @@ void djson::parse()
 			}
 			pos += ret;
 			sub = newitem(jo,JTRUE,key,s);
-			//sub->level = stk.size()-1;
 			key = "";
 			jo->append(sub);
 			pos--;
@@ -225,7 +490,6 @@ void djson::parse()
 			}
 			pos+=ret;
 			sub = newitem(jo,JFALSE,key,s);
-			//sub->level = stk.size()-1;
 			key = "";
 			jo->append(sub);
 			pos--;
@@ -235,10 +499,10 @@ void djson::parse()
 			if (ret!=4)
 			{
 				error = JE_NULL;
+				break;
 			}
 			pos += ret;
 			sub = newitem(jo,JNULL,key,s);
-			//sub->level = stk.size()-1;
 			key = "";
 			jo->append(sub);
 			pos--;
@@ -273,10 +537,21 @@ int djson::parse_string(int startpos,string &str)
 		}
 		
 		//The escape characters
-		if (c == '\\')
+		if ( (c == '\\') && (pos+1<jsontextlen) )
 		{
-			pos++;
-			continue;
+			if (jsontext[pos+1]=='\\')
+			{
+				str += '\\';
+				pos+=2;
+				continue;
+			}
+			
+			if (jsontext[pos+1]=='\"')
+			{
+				str += '\"';
+				pos+=2;
+				continue;
+			}
 		}
 
 		str += (char)c;
@@ -338,3 +613,71 @@ int djson::parse_string_want(int startpos,string swant,string &str)
     return pos-startpos;
 }
 
+djitem* djson::trueitem(djitem* parent)
+{
+	if (parent->type==JROOT)
+		parent = parent->child;
+	if (!parent)
+		return NULL;
+	if ( (parent->type==JARRAY) ||
+		(parent->type==JOBJECT) )
+		return parent->child;
+	return parent; //else NULL?
+}
+
+djitem* djson::finditem(djitem* parent,string keyname)
+{
+	djitem* it;
+	it = trueitem(parent);
+	while (it)
+	{
+		if (it->skey==keyname)
+			return it;
+		it = it->sibling;
+	}
+	return NULL;
+}
+
+djitem* djson::finditembyindex(djitem* parent,int index)
+{
+	djitem* it = trueitem(parent);
+	int i=0;
+	while (it)
+	{
+		if (i==index)
+			return it;
+		it = it->sibling;
+		i++;
+	}
+	return NULL;
+}
+
+djitem* djson::finditembytype(djitem* parent,int index,djson_type type)
+{
+	djitem* it = trueitem(parent);
+	int i=0;
+	while (it)
+	{
+		if (it->type==type)
+		{
+			if (i==index)
+				return it;
+			i++;
+		}
+		it = it->sibling;
+	}
+	return NULL;
+}
+
+bool djson::deleteitem(djitem* pitem)
+{
+	printf("delete is unfinish.\n");
+	return false;
+}
+
+//insert after dst
+djitem* djson::insertitem(djitem* psrc,djitem* pdst)
+{
+	printf("insert is unfinish.\n");
+	return NULL;
+}
